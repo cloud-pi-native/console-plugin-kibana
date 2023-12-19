@@ -8,15 +8,31 @@ import { createGroup, createRbacK8s } from './kubernetes.js'
 import { createHmac } from 'crypto'
 
 export const createRbac: StepCall<EnvironmentCreateArgs> = async (payload) => {
-  const { organization, project, environment, cluster, owner, quota } = payload.args
-  const namespace = generateNamespaceName(organization, project, environment)
-  const rbac = await createRbacV1Api(cluster)
-  console.log('create group')
-  createGroup(cluster, namespace, project, owner.id)
-  console.log('group created')
-  console.log('create rbac')
-  createRbacK8s(rbac, namespace, project)
-  console.log('rbac created')
+  try {
+    const { organization, project, environment, cluster, owner, quota } = payload.args
+    const namespace = generateNamespaceName(organization, project, environment)
+    const rbac = await createRbacV1Api(cluster)
+    console.log('create group')
+    createGroup(cluster, namespace, project, owner.id)
+    console.log('group created')
+    console.log('create rbac')
+    createRbacK8s(rbac, namespace, project)
+    console.log('rbac created')
+    return {
+      status: {
+        result: 'OK',
+        message: 'Created',
+      },
+    }
+  } catch (error) {
+    return {
+      status: {
+        result: 'KO',
+        message: 'Fail to create rbac for logging',
+      },
+      error: JSON.stringify(error),
+    }
+  }
 }
 
 export const deleteRbac: StepCall<EnvironmentDeleteArgs> = async (payload) => {
