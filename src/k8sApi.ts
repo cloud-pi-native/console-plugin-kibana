@@ -1,6 +1,6 @@
 import { CoreV1Api, KubeConfig, PatchUtils } from '@kubernetes/client-node'
-import { ClusterModel } from '@dso-console/shared'
-import * as k8s from '@kubernetes/client-node';
+import { ClusterModel } from '@dso-console/shared/src/resources/cluster/index.js'
+import * as k8s from '@kubernetes/client-node'
 
 export const patchOptions = { headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_PATCH } }
 

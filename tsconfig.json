@@ -113,7 +113,7 @@
     "./src/init.ts"
   ],
   "include": [
-    "*.ts", "./src/apim.ts", "./src/user.ts"
+    "*.ts", "./*.ts"
   ],
   "plugins": [
     {

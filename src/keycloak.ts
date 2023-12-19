@@ -3,7 +3,7 @@ import {
   keycloakProtocol,
   keycloakDomain,
   keycloakRealm,
-} from '@/utils/env.js'
+} from '@dso-console/server/src/utils/env.js'
 
 export const keycloakToken = process.env.KEYCLOAK_ADMIN_PASSWORD
 export const keycloakUser = process.env.KEYCLOAK_ADMIN
