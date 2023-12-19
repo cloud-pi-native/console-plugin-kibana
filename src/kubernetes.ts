@@ -1,6 +1,6 @@
 import { V1RoleBinding } from '@kubernetes/client-node'
 import * as k8s from '@kubernetes/client-node'
-import { createCustomObjectsApi } from './k8sApi'
+import { createCustomObjectsApi } from './k8sApi.js'
 import { getkcClient } from './keycloak.js'
 export const createGroup = async (cluster, envName: string, project: string, ownerId: string) => {
   console.log('create group : ')
