@@ -31,7 +31,7 @@ jobs:
         body: Release notes for v${{ steps.package_version.outputs.version }}
     
     - run: |
-        zip -r dist.zip dist/*
+        cd dist;zip -r dist.zip ./*
 
     - name: Upload Release Artifact
       if: github.ref == 'refs/heads/main'
