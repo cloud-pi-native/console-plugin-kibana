@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { EnvironmentCreateArgs, EnvironmentDeleteArgs } from '@dso-console/server/src/plugins/hooks'
+import { EnvironmentCreateArgs, EnvironmentDeleteArgs } from '@dso-console/server/src/plugins/hooks/index.js'
 import { StepCall } from '@dso-console/server/src/plugins/hooks/hook.js'
 import type { ProjectBase } from '@dso-console/server/src/plugins/hooks/project.js'
 import { createRbacV1Api } from './k8sApi.js'

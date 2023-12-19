@@ -1,10 +1,8 @@
 import KcAdminClient from '@keycloak/keycloak-admin-client'
-import {
-  keycloakProtocol,
-  keycloakDomain,
-  keycloakRealm,
-} from '@dso-console/server/src/utils/env.js'
 
+export const keycloakProtocol = process.env.KEYCLOAK_PROTOCOL
+export const keycloakDomain = process.env.KEYCLOAK_DOMAIN
+export const keycloakRealm = process.env.KEYCLOAK_REALM
 export const keycloakToken = process.env.KEYCLOAK_ADMIN_PASSWORD
 export const keycloakUser = process.env.KEYCLOAK_ADMIN
 
