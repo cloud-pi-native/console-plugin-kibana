@@ -1,25 +1,35 @@
 import { createCustomObjectsApi, createRbacV1Api } from './k8sApi.js'
 import { getkcClient } from './keycloak.js'
-export const createGroup = async (cluster, project: string, ownerId: string) => {
+
+const getGroupName = (project: string, organization: string): string => {
+  return `${organization}-${project}-group-ro`
+}
+
+const getRbacName = (envName: string): string => {
+  return `${envName}-view`
+}
+
+export const createGroup = async (cluster, project: string, ownerId: string, organization: string) => {
+  const groupName = getGroupName(project, organization)
   const customObjectsApi = await createCustomObjectsApi(cluster)
   try {
     const kcClient = await getkcClient()
     const username = (await kcClient.users.findOne({ id: ownerId })).username
-    const users = []
-    users.push(username)
-    const groupJson = getGroupObject(`${project}-group-ro`, users)
+    const users = [username]
+    const groupJson = getGroupObject(groupName, users)
     const result = await customObjectsApi.createClusterCustomObject('user.openshift.io', 'v1', 'groups', groupJson)
     console.log(JSON.stringify(result.body))
   } catch (e) {
     console.log(e)
-    console.error(`Something wrong happened while creating group ${project}-group-ro`)
+    console.error(`Something wrong happened while creating group ${groupName}`)
   }
 }
 
-export const createRbacK8s = async (cluster, envName: string, project) => {
+export const createRbacK8s = async (cluster, envName: string, project, organization: string) => {
+  const groupName = getGroupName(project, organization)
   const rbacObjectApi = await createRbacV1Api(cluster)
   try {
-    const result = await rbacObjectApi.createNamespacedRoleBinding(envName, getRbacObject(envName, project))
+    const result = await rbacObjectApi.createNamespacedRoleBinding(envName, getRbacObject(envName, groupName))
     console.log(JSON.stringify(result.body))
   } catch (e) {
     console.log(e)
@@ -41,12 +51,13 @@ export const getGroupObject = (groupName: string, users: Array<string>) => {
   }
 }
 
-export const getRbacObject = (envName: string, project: string) => {
+export const getRbacObject = (envName: string, groupName: string) => {
+  const rbacName = getRbacName(envName)
   return {
     apiVersion: 'rbac.authorization.k8s.io/v1',
     kind: 'RoleBinding',
     metadata: {
-      name: `${envName}-view`,
+      name: rbacName,
       namespace: envName,
       labels: {
         'app.kubernetes.io/managed-by': 'dso-console',
@@ -60,7 +71,7 @@ export const getRbacObject = (envName: string, project: string) => {
     subjects: [{
       apiGroup: 'rbac.authorization.k8s.io',
       kind: 'Group',
-      name: `${project}-group-ro`,
+      name: groupName,
     }],
   }
 }
