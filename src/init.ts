@@ -11,7 +11,7 @@ export const init = (register: RegisterFn) => {
       initializeEnvironment: {
         post: createRbac,
       },
-      archiveProject: { main: deleteRbac },
+      deleteEnvironment: { main: deleteRbac },
       getProjectSecrets: { main: getDsoProjectSecrets },
     },
   )

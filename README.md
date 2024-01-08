@@ -1,1 +1,1 @@
-# console-plugin-observability
+# console-plugin-logging

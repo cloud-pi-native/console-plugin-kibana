@@ -1,50 +1,33 @@
-import { V1RoleBinding } from '@kubernetes/client-node'
-import * as k8s from '@kubernetes/client-node'
-import { createCustomObjectsApi } from './k8sApi.js'
+import { createCustomObjectsApi, createRbacV1Api } from './k8sApi.js'
 import { getkcClient } from './keycloak.js'
-export const createGroup = async (cluster, envName: string, project: string, ownerId: string) => {
-  console.log('create group : ')
-  const kcClient = await getkcClient()
-  const username = (await kcClient.users.findOne({ id: ownerId })).username
+export const createGroup = async (cluster, project: string, ownerId: string) => {
   const customObjectsApi = await createCustomObjectsApi(cluster)
-  const users = []
-  users.push(username)
-  const groupJson = getGroupObject(envName, `${project}-group-ro`, users)
-  console.log(groupJson)
-  customObjectsApi.createClusterCustomObject('user.openshift.io', 'v1', 'groups', groupJson)
-  console.log('create group ok')
-}
-
-export const createRbacK8s = async (kc: k8s.RbacAuthorizationV1Api, envName: string, project) => {
-  const roleBinding = {
-    apiVersion: 'rbac.authorization.k8s.io/v1',
-    kind: 'RoleBinding',
-    metadata: {
-      name: `${envName}-view`,
-      namespace: envName,
-      labels: {
-        'app.kubernetes.io/managed-by': 'dso-console',
-      },
-    },
-    roleRef: {
-      apiGroup: 'rbac.authorization.k8s.io',
-      kind: 'ClusterRole',
-      name: 'view',
-    },
-    subjects: [{
-      apiGroup: 'rbac.authorization.k8s.io',
-      kind: 'Group',
-      name: `${project}-group-ro`,
-    }],
+  try {
+    const kcClient = await getkcClient()
+    const username = (await kcClient.users.findOne({ id: ownerId })).username
+    const users = []
+    users.push(username)
+    const groupJson = getGroupObject(`${project}-group-ro`, users)
+    const result = await customObjectsApi.createClusterCustomObject('user.openshift.io', 'v1', 'groups', groupJson)
+    console.log(JSON.stringify(result.body))
+  } catch (e) {
+    console.log(e)
+    console.error(`Something wrong happened while creating group ${project}-group-ro`)
   }
-  kc.createNamespacedRoleBinding(envName, roleBinding).then(response => {
-    console.log(response.body)
-  }).catch(error => {
-    console.log(error)
-  })
 }
 
-export const getGroupObject = (nsName: string, groupName: string, users: Array<string>) => {
+export const createRbacK8s = async (cluster, envName: string, project) => {
+  const rbacObjectApi = await createRbacV1Api(cluster)
+  try {
+    const result = await rbacObjectApi.createNamespacedRoleBinding(envName, getRbacObject(envName, project))
+    console.log(JSON.stringify(result.body))
+  } catch (e) {
+    console.log(e)
+    console.error(`Something wrong happened while creating rbac ${envName}-view in namespace ${envName}`)
+  }
+}
+
+export const getGroupObject = (groupName: string, users: Array<string>) => {
   return {
     apiVersion: 'user.openshift.io/v1',
     kind: 'Group',
@@ -58,13 +41,13 @@ export const getGroupObject = (nsName: string, groupName: string, users: Array<s
   }
 }
 
-export const getRoleBindingObject = (nsName: string, rbName: string): V1RoleBinding => {
+export const getRbacObject = (envName: string, project: string) => {
   return {
-    apiVersion: 'v1',
+    apiVersion: 'rbac.authorization.k8s.io/v1',
     kind: 'RoleBinding',
     metadata: {
-      name: rbName,
-      namespace: nsName,
+      name: `${envName}-view`,
+      namespace: envName,
       labels: {
         'app.kubernetes.io/managed-by': 'dso-console',
       },
@@ -72,8 +55,56 @@ export const getRoleBindingObject = (nsName: string, rbName: string): V1RoleBind
     roleRef: {
       apiGroup: 'rbac.authorization.k8s.io',
       kind: 'ClusterRole',
-      name: 'view',
+      name: 'admin',
     },
-    subjects: [],
+    subjects: [{
+      apiGroup: 'rbac.authorization.k8s.io',
+      kind: 'Group',
+      name: `${project}-group-ro`,
+    }],
+  }
+}
+
+export const groupExist = async (project: string, cluster) => {
+  const customObjectsApi = await createCustomObjectsApi(cluster)
+  try {
+    const result = await customObjectsApi.getClusterCustomObject('user.openshift.io', 'v1', 'groups', `${project}-group-ro`)
+    console.log(JSON.stringify(result.body))
+    return true
+  } catch {
+    console.log(`Group ${project}-group-ro not exist`)
+    return false
+  }
+}
+
+export const rbacExist = async (cluster, envName: string) => {
+  const rbacObjectApi = await createRbacV1Api(cluster)
+  try {
+    const result = await rbacObjectApi.readNamespacedRoleBinding(`${envName}-view`, envName)
+    console.log(JSON.stringify(result.body))
+    return true
+  } catch {
+    console.log(`Role binding ${envName}-view in namespace ${envName} not exist`)
+    return false
+  }
+}
+
+export const deleteGroupK8s = async (project: string, cluster) => {
+  const customObjectsApi = await createCustomObjectsApi(cluster)
+  try {
+    const result = await customObjectsApi.deleteClusterCustomObject('user.openshift.io', 'v1', 'groups', `${project}-group-ro`)
+    console.log(JSON.stringify(result.body))
+  } catch (e) {
+    console.log(e)
+  }
+}
+
+export const deleteRbacK8s = async (envName: string, cluster) => {
+  const rbacObjectApi = await createRbacV1Api(cluster)
+  try {
+    const result = await rbacObjectApi.deleteNamespacedRoleBinding(`${envName}-view`, envName)
+    console.log(JSON.stringify(result.body))
+  } catch (e) {
+    console.log(e)
   }
 }
