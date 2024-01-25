@@ -1,8 +1,7 @@
 import { KubeConfig } from '@kubernetes/client-node'
-import { ClusterModel } from '@dso-console/shared/src/resources/cluster/index.js'
 import * as k8s from '@kubernetes/client-node'
 
-export const createRbacV1Api = async (cluster: ClusterModel) => {
+export const createRbacV1Api = async (cluster) => {
   const kc = new KubeConfig()
   const clusterConfig = {
     ...cluster.cluster,
@@ -17,7 +16,7 @@ export const createRbacV1Api = async (cluster: ClusterModel) => {
   return kc.makeApiClient(k8s.RbacAuthorizationV1Api)
 }
 
-export const createCustomObjectsApi = async (cluster: ClusterModel) => {
+export const createCustomObjectsApi = async (cluster) => {
   const kc = new KubeConfig()
   const clusterConfig = {
     ...cluster.cluster,
