@@ -2,7 +2,7 @@
 
 import type { RegisterFn } from 'dso-console/apps/server/src/plugins/index.js'
 import infos from './infos.js'
-import { createRbac, deleteRbac, getDsoProjectSecrets } from './index.js'
+import { createRbac, deleteRbac } from './index.js'
 
 export const init = (register: RegisterFn) => {
   register(
@@ -12,7 +12,6 @@ export const init = (register: RegisterFn) => {
         post: createRbac,
       },
       deleteEnvironment: { main: deleteRbac },
-      getProjectSecrets: { main: getDsoProjectSecrets },
     },
   )
 }
