@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import type { RegisterFn } from '@dso-console/server/src/plugins/index.js'
+import type { RegisterFn } from 'dso-console/apps/server/src/plugins/index.js'
 import infos from './infos.js'
 import { createRbac, deleteRbac, getDsoProjectSecrets } from './index.js'
 

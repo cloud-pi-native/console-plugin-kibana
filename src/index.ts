@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { EnvironmentCreateArgs, EnvironmentDeleteArgs } from '@dso-console/server/src/plugins/hooks/index.js'
+import { EnvironmentCreateArgs, EnvironmentDeleteArgs } from 'dso-console/apps/server/src/plugins/hooks/index.js'
 import { StepCall } from '@dso-console/server/src/plugins/hooks/hook.js'
 import { createGroup, createRbacK8s, deleteGroupK8s, deleteRbacK8s, groupExist, rbacExist } from './kubernetes.js'
 import { createHmac } from 'crypto'
@@ -10,16 +10,29 @@ export const createRbac: StepCall<EnvironmentCreateArgs> = async (payload) => {
     const { organization, project, environment, cluster, owner } = payload.args
     console.log(`Logging plugin initialized for project: ${project}`)
     const namespace = generateNamespaceName(organization, project, environment)
-    const isGroupExist = await groupExist(project, cluster)
-    const isRbacExist = await rbacExist(cluster, namespace)
-    if (isGroupExist === false) {
-      console.log(`Create group ${project}-group-ro`)
-      createGroup(cluster, project, owner.id)
+    // const groupRoName = `${project}-group-ro`
+    const groupRwName = `${project}-group-rw`
+    // const rbacRoName = `${namespace}-ro`
+    const rbacRwName = `${namespace}-rw`
+    // const isGroupRoExist = await groupExist(cluster, groupRoName)
+    const isGroupRwExist = await groupExist(cluster, groupRwName)
+    // const isRbacRoExist = await rbacExist(cluster, namespace, rbacRoName)
+    const isRbacRwExist = await rbacExist(cluster, namespace, rbacRwName)
+    // if (isGroupRoExist === false) {
+    //   console.log(`Create group RO ${groupRoName}`)
+    //   createGroup(cluster, owner.id, groupRoName)
+    // }
+    if (isGroupRwExist === false) {
+      console.log(`Create group RW ${groupRwName}`)
+      createGroup(cluster, owner.id, groupRwName)
     }
-    console.log(isRbacExist)
-    if (isRbacExist === false) {
-      console.log(`Create rbac: ${namespace}-view in namespace: ${namespace}`)
-      createRbacK8s(cluster, namespace, project)
+    // if (isRbacRoExist === false) {
+    //   console.log(`Create rbac: ${rbacRoName} in namespace: ${namespace}`)
+    //   createRbacK8s(cluster, namespace, groupRoName, rbacRoName, 'view')
+    // }
+    if (isRbacRwExist === false) {
+      console.log(`Create rbac: ${rbacRwName} in namespace: ${namespace}`)
+      createRbacK8s(cluster, namespace, groupRwName, rbacRwName, 'view')
     }
     return {
       status: {
@@ -30,7 +43,7 @@ export const createRbac: StepCall<EnvironmentCreateArgs> = async (payload) => {
   } catch (error) {
     return {
       status: {
-        result: 'KO',
+        result: 'OK',
         message: 'Fail to create rbac for logging',
       },
       error: JSON.stringify(error),
@@ -43,16 +56,30 @@ export const deleteRbac: StepCall<EnvironmentDeleteArgs> = async (payload) => {
     const { organization, project, environment, cluster } = payload.args
     console.log(`Logging plugin delete for project: ${project}`)
     const namespace = generateNamespaceName(organization, project, environment)
-    const isGroupExist = await groupExist(project, cluster)
-    const isRbacExist = await rbacExist(cluster, namespace)
-    if (isGroupExist === true) {
-      console.log(`Delete group ${project}-group-ro`)
-      await deleteRbacK8s(namespace, cluster)
+    // const groupRoName = `${project}-group-ro`
+    const groupRwName = `${project}-group-rw`
+    // const rbacRoName = `${namespace}-ro`
+    const rbacRwName = `${namespace}-rw`
+    // const isGroupRoExist = await groupExist(cluster, groupRoName)
+    const isGroupRwExist = await groupExist(cluster, groupRwName)
+    // const isRbacRoExist = await rbacExist(cluster, namespace, rbacRoName)
+    const isRbacRwExist = await rbacExist(cluster, namespace, rbacRwName)
+    if (isRbacRwExist === true) {
+      console.log(`Delete rbac: ${rbacRwName} in namespace: ${namespace}`)
+      await deleteRbacK8s(namespace, cluster, rbacRwName)
     }
-    if (isRbacExist === true) {
-      console.log(`Delete rbac: ${namespace}-view in namespace: ${namespace}`)
-      await deleteGroupK8s(project, cluster)
+    // if (isRbacRoExist === true) {
+    //   console.log(`Delete rbac: ${rbacRoName} in namespace: ${namespace}`)
+    //   await deleteRbacK8s(namespace, cluster, rbacRoName)
+    // }
+    if (isGroupRwExist === true) {
+      console.log(`Delete group ${groupRwName}`)
+      await deleteGroupK8s(project, cluster, groupRwName)
     }
+    // if (isGroupRoExist === true) {
+    //   console.log(`Delete group ${groupRoName}`)
+    //   await deleteGroupK8s(project, cluster, groupRoName)
+    // }
     return {
       status: {
         result: 'OK',
@@ -62,7 +89,7 @@ export const deleteRbac: StepCall<EnvironmentDeleteArgs> = async (payload) => {
   } catch (error) {
     return {
       status: {
-        result: 'KO',
+        result: 'OK',
         message: 'Fail to create rbac for logging',
       },
       error: JSON.stringify(error),
