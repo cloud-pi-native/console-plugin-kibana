@@ -1,6 +1,6 @@
 {
   "name": "logging",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Logging plugin for DSO console",
   "main": "index.js",
   "scripts": {
