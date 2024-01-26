@@ -15,7 +15,6 @@ const infos: ServiceInfos = {
 const getKibanaUrls = ({ clusters }: ToUrlFnParamaters) => clusters.reduce((tos, cluster) => {
   const infosArray = cluster.infos.split('\n');
   const urlInfo = infosArray.find(infos => infos.split('=')[0] === 'url');
-  console.log(JSON.stringify(cluster))
   return urlInfo ? [...tos, {
     to: `${urlInfo.split('=')[1]}`,
     title: `Logging ${cluster.label}`,
