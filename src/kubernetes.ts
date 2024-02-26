@@ -1,13 +1,14 @@
+import { EnvironmentCreateArgs } from '@cpn-console/hooks'
 import { createCustomObjectsApi, createRbacV1Api } from './k8sApi.js'
 import { getkcClient } from './keycloak.js'
 
-export const createGroup = async (cluster, ownerId: string, group) => {
+export const createGroup = async (cluster: EnvironmentCreateArgs['cluster'], ownerId: string, group: string) => {
   const customObjectsApi = await createCustomObjectsApi(cluster)
   try {
     const kcClient = await getkcClient()
-    const username = (await kcClient.users.findOne({ id: ownerId })).username
-    const users = [username]
-    const groupJson = getGroupObject(group, users)
+    const username = (await kcClient.users.findOne({ id: ownerId }))?.username
+    if (!username) throw new Error('User not found')
+    const groupJson = getGroupObject(group, [username])
     const result = await customObjectsApi.createClusterCustomObject('user.openshift.io', 'v1', 'groups', groupJson)
     console.log(JSON.stringify(result.body))
   } catch (e) {
@@ -16,7 +17,7 @@ export const createGroup = async (cluster, ownerId: string, group) => {
   }
 }
 
-export const createRbacK8s = async (cluster, envName: string, groupName: string, rbacName: string, roleName: string) => {
+export const createRbacK8s = async (cluster: EnvironmentCreateArgs['cluster'], envName: string, groupName: string, rbacName: string, roleName: string) => {
   const rbacObjectApi = await createRbacV1Api(cluster)
   try {
     const result = await rbacObjectApi.createNamespacedRoleBinding(envName, getRbacObject(envName, groupName, rbacName, roleName))
@@ -27,7 +28,7 @@ export const createRbacK8s = async (cluster, envName: string, groupName: string,
   }
 }
 
-export const getGroupObject = (groupName: string, users: Array<string>) => {
+export const getGroupObject = (groupName: string, users: string[]) => {
   return {
     apiVersion: 'user.openshift.io/v1',
     kind: 'Group',
@@ -65,7 +66,7 @@ export const getRbacObject = (envName: string, groupName: string, rbacName: stri
   }
 }
 
-export const groupExist = async (cluster, group) => {
+export const groupExist = async (cluster: EnvironmentCreateArgs['cluster'], group: string) => {
   const customObjectsApi = await createCustomObjectsApi(cluster)
   try {
     const result = await customObjectsApi.getClusterCustomObject('user.openshift.io', 'v1', 'groups', `${group}`)
@@ -77,7 +78,7 @@ export const groupExist = async (cluster, group) => {
   }
 }
 
-export const rbacExist = async (cluster, envName: string, rbacName) => {
+export const rbacExist = async (cluster: EnvironmentCreateArgs['cluster'], envName: string, rbacName: string) => {
   const rbacObjectApi = await createRbacV1Api(cluster)
   try {
     const result = await rbacObjectApi.readNamespacedRoleBinding(`${rbacName}`, envName)
@@ -89,7 +90,7 @@ export const rbacExist = async (cluster, envName: string, rbacName) => {
   }
 }
 
-export const deleteGroupK8s = async (cluster, group) => {
+export const deleteGroupK8s = async (cluster: EnvironmentCreateArgs['cluster'], group: string) => {
   const customObjectsApi = await createCustomObjectsApi(cluster)
   try {
     const result = await customObjectsApi.deleteClusterCustomObject('user.openshift.io', 'v1', 'groups', `${group}`)
@@ -99,7 +100,7 @@ export const deleteGroupK8s = async (cluster, group) => {
   }
 }
 
-export const deleteRbacK8s = async (envName: string, cluster, rbacName) => {
+export const deleteRbacK8s = async (envName: string, cluster: EnvironmentCreateArgs['cluster'], rbacName: string) => {
   const rbacObjectApi = await createRbacV1Api(cluster)
   try {
     const result = await rbacObjectApi.deleteNamespacedRoleBinding(`${rbacName}`, envName)
