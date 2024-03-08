@@ -1,5 +1,5 @@
 import { type Plugin } from '@cpn-console/hooks'
-import { createRbac, deleteRbac } from './functions.js'
+import { createRbac, deleteRbac, updatePermission } from './functions.js'
 import infos from './infos.js'
 
 export const plugin: Plugin = {
@@ -7,5 +7,6 @@ export const plugin: Plugin = {
   subscribedHooks: {
     initializeEnvironment: { steps: { post: createRbac } },
     deleteEnvironment: { steps: { main: deleteRbac } },
+    setEnvPermission: { steps: { main: updatePermission } },
   },
 }

@@ -33,3 +33,5 @@ export const createCustomObjectsApi = async (cluster: EnvironmentCreateArgs['clu
   kc.loadFromClusterAndUser(clusterConfig, userConfig)
   return kc.makeApiClient(k8s.CustomObjectsApi)
 }
+
+export const PATCH_FORMAT_JSON_PATCH = k8s.PatchUtils.PATCH_FORMAT_JSON_PATCH
