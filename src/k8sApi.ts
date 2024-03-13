@@ -1,4 +1,4 @@
-import { EnvironmentCreateArgs } from '@cpn-console/hooks'
+import type { EnvironmentCreateArgs } from '@cpn-console/hooks'
 import { KubeConfig } from '@kubernetes/client-node'
 import * as k8s from '@kubernetes/client-node'
 
