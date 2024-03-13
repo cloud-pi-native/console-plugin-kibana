@@ -1,4 +1,4 @@
-import { EnvironmentCreateArgs } from '@cpn-console/hooks'
+import type { EnvironmentCreateArgs } from '@cpn-console/hooks'
 import { PATCH_FORMAT_JSON_PATCH, createCustomObjectsApi, createRbacV1Api } from './k8sApi.js'
 import { getkcClient } from './keycloak.js'
 
