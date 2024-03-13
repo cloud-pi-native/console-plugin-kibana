@@ -7,9 +7,8 @@
   "module": "./dist/index.js",
   "scripts": {
     "dev": "nodemon --watch src --ext .ts --exec 'npm run build'",
-    "build": "npm run clean:build && npm run compile",
-    "clean:build": "rm -rf ./dist ./types",
-    "compile": "tsc",
+    "build": "tsc",
+    "build:clean": "rm -rf ./dist ./types ./tsconfig.tsbuildinfo",
     "format": "eslint ./src --ext .js,.cjs,.ts --fix",
     "lint": "eslint ./src",
     "test": "echo \"Error: no test specified\" && exit 1",
