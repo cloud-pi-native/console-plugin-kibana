@@ -28,7 +28,7 @@ export const createRbac: StepCall<EnvironmentCreateArgs> = async (payload) => {
     let groupRo = await getGroup(cluster, groupRoName)
     if (!groupRo) {
       console.log(`Create group RO ${groupRoName}`)
-      groupRo = await createGroup(cluster, '', groupRoName)
+      groupRo = await createGroup(cluster, owner.id, groupRoName)
     }
 
     const rbacRoName = `${namespace}-ro`

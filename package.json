@@ -1,6 +1,6 @@
 {
   "name": "@cpn-console/kibana-plugin",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Kibana plugin for DSO console",
   "type": "module",
   "main": "./dist/index.js",
