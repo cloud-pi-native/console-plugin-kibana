@@ -33,7 +33,7 @@ export const upsertProject: StepCall<Project> = async (payload) => {
     for (const cluster of clusters) {
       const customObjectsApi = await createCustomObjectsApi(cluster)
 
-      Promise.all([
+      await Promise.all([
         kubeApi.applyResourcesInAllEnvNamespaces({
           name: 'kibana-ro',
           version: 'v1',
