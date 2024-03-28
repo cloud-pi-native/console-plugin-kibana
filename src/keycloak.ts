@@ -1,3 +1,4 @@
+import { UserObject } from '@cpn-console/hooks'
 import KcAdminClient from '@keycloak/keycloak-admin-client'
 
 export const keycloakProtocol = process.env.KEYCLOAK_PROTOCOL
@@ -19,4 +20,15 @@ export const getkcClient = async () => {
   })
   kcClient.setConfig({ realmName: keycloakRealm })
   return kcClient
+}
+
+export const getAllUsers = (users: UserObject[], kcClient: KcAdminClient): Promise<UserObject & { username: string}>[] => {
+  return users.map(async user => {
+    const username = (await kcClient.users.findOne({ id: user.id }))?.username
+    if (!username) throw new Error('User not found')
+    return {
+      ...user,
+      username,
+    }
+  })
 }
