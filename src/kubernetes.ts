@@ -1,191 +1,110 @@
-import type { EnvironmentCreateArgs } from '@cpn-console/hooks'
-import { PATCH_FORMAT_JSON_PATCH, createCustomObjectsApi, createRbacV1Api } from './k8sApi.js'
-import { getkcClient } from './keycloak.js'
+import { ClusterObject } from '@cpn-console/hooks'
+import { getProjectSelector } from './functions.js'
+import { CustomObjectsApi, PatchUtils } from '@kubernetes/client-node'
+import { createCustomObjectsApi } from './k8sApi.js'
+const patchOptions = { headers: { 'Content-type': PatchUtils.PATCH_FORMAT_JSON_MERGE_PATCH } }
 
-export const createGroup = async (cluster: EnvironmentCreateArgs['cluster'], ownerId: string, group: string) => {
-  try {
-    const customObjectsApi = await createCustomObjectsApi(cluster)
-    const kcClient = await getkcClient()
-    const username = (await kcClient.users.findOne({ id: ownerId }))?.username
-    if (!username) throw new Error('User not found')
-    const groupJson = getGroupObject(group, [username])
-    const result = await customObjectsApi.createClusterCustomObject('user.openshift.io', 'v1', 'groups', groupJson)
-    return result.body
-  } catch (error) {
-    if (error instanceof Error) {
-      console.log(error)
-    }
-    console.error(`Something wrong happened while creating group ${group}`)
-  }
+type Perm = 'rw' | 'ro'
+
+export type BaseProject = {
+  project: string
+  organization: string
 }
 
-export const addUserToGroup = async (cluster: EnvironmentCreateArgs['cluster'], userId: string, group: string) => {
-  try {
-    const customObjectsApi = await createCustomObjectsApi(cluster)
-    const kcClient = await getkcClient()
-
-    const username = (await kcClient.users.findOne({ id: userId }))?.username
-    if (!username) throw new Error('User not found')
-
-    let k8sGroup = await getGroup(cluster, group)
-
-    if (!k8sGroup) {
-      console.log(`creating group ${group}`)
-      k8sGroup = getGroupObject(group, [username])
-      const result = await customObjectsApi.createClusterCustomObject('user.openshift.io', 'v1', 'groups', k8sGroup)
-      return result.body
-    }
-
-    // @ts-ignore
-    if (k8sGroup.users.some((user: string) => user === username)) return k8sGroup
-
-    const patch = [{
-      op: 'add',
-      path: '/users/-',
-      value: username,
-    }]
-
-    // @ts-ignore
-    const result = await customObjectsApi.patchClusterCustomObject('user.openshift.io', 'v1', 'groups', k8sGroup.metadata.name, patch, undefined, undefined, undefined, { headers: { 'Content-Type': PATCH_FORMAT_JSON_PATCH } })
-    return result.body
-  } catch (error) {
-    if (error instanceof Error) {
-      console.log(error.message)
-    }
-    console.error(`Something wrong happened while adding user to group ${group}`)
-  }
-}
-
-export const removeUserFromGroup = async (cluster: EnvironmentCreateArgs['cluster'], userId: string, group: string) => {
-  try {
-    const customObjectsApi = await createCustomObjectsApi(cluster)
-    const kcClient = await getkcClient()
-
-    const username = (await kcClient.users.findOne({ id: userId }))?.username
-    if (!username) throw new Error('User not found')
-
-    let k8sGroup = await getGroup(cluster, group)
-
-    if (!k8sGroup) {
-      console.log(`creating group ${group}`)
-      k8sGroup = getGroupObject(group, [])
-      const result = await customObjectsApi.createClusterCustomObject('user.openshift.io', 'v1', 'groups', k8sGroup)
-      return result.body
-    }
-
-    // @ts-ignore
-    if (!k8sGroup.users.some((user: string) => user === username)) return k8sGroup
-
-    // @ts-ignore
-    const userIndx = k8sGroup.users.findIndex((user: string) => user === username)
-
-    const patch = [{
-      op: 'remove',
-      path: `/users/${userIndx}`,
-    }]
-
-    // @ts-ignore
-    const result = await customObjectsApi.patchClusterCustomObject('user.openshift.io', 'v1', 'groups', k8sGroup.metadata.name, patch, undefined, undefined, undefined, { headers: { 'Content-Type': PATCH_FORMAT_JSON_PATCH } })
-    return result.body
-  } catch (error) {
-    if (error instanceof Error) {
-      console.log(error.message)
-    }
-    console.error(`Something wrong happened while removing user from group ${group}`)
-  }
-}
-
-export const createRbacK8s = async (cluster: EnvironmentCreateArgs['cluster'], envName: string, groupName: string, rbacName: string, roleName: string) => {
-  try {
-    const rbacObjectApi = await createRbacV1Api(cluster)
-    const result = await rbacObjectApi.createNamespacedRoleBinding(envName, getRbacObject(envName, groupName, rbacName, roleName))
-    return result.body
-  } catch (error) {
-    if (error instanceof Error) {
-      console.log(error.message)
-    }
-    console.error(`Something wrong happened while creating rbac ${envName}-view in namespace ${envName}`)
-  }
-}
-
-export const getGroupObject = (groupName: string, users: string[]) => {
-  return {
-    apiVersion: 'user.openshift.io/v1',
-    kind: 'Group',
-    metadata: {
-      name: groupName,
-      labels: {
-        'app.kubernetes.io/managed-by': 'dso-console',
-      },
-    },
-    users,
-  }
-}
-
-export const getRbacObject = (envName: string, groupName: string, rbacName: string, roleName: string) => {
+export const getRolebindingObject = (params: BaseProject, groupName: string, roleName: string, perm: Perm) => {
   return {
     apiVersion: 'rbac.authorization.k8s.io/v1',
     kind: 'RoleBinding',
     metadata: {
-      name: rbacName,
-      namespace: envName,
+      name: `kibana ${perm}`,
       labels: {
         'app.kubernetes.io/managed-by': 'dso-console',
+        'dso/organization': params.organization,
+        'dso/project': params.project,
+        'dso/kibana-perm': perm,
       },
     },
     roleRef: {
       apiGroup: 'rbac.authorization.k8s.io',
       kind: 'ClusterRole',
-      name: roleName,
+      name: groupName,
     },
     subjects: [{
       apiGroup: 'rbac.authorization.k8s.io',
       kind: 'Group',
-      name: groupName,
+      name: roleName,
     }],
   }
 }
 
-export const getGroup = async (cluster: EnvironmentCreateArgs['cluster'], group: string) => {
-  try {
-    const customObjectsApi = await createCustomObjectsApi(cluster)
-    const result = await customObjectsApi.getClusterCustomObject('user.openshift.io', 'v1', 'groups', `${group}`)
-    return result.body
-  } catch {
-    console.log(`Group ${group} not found`)
-  }
-}
+const getProjectPermGroups = (customObjectsApi: CustomObjectsApi, params: BaseProject, perm: Perm) => customObjectsApi.listClusterCustomObject('user.openshift.io', 'v1', 'groups', undefined, undefined, undefined, undefined, getProjectSelector({
+  organization: params.organization,
+  project: params.project,
+  perm,
+})) as Promise<{ body: {items: { metadata: { name: string } }[] } }>
 
-export const getRbac = async (cluster: EnvironmentCreateArgs['cluster'], envName: string, rbacName: string) => {
-  try {
-    const rbacObjectApi = await createRbacV1Api(cluster)
-    const result = await rbacObjectApi.readNamespacedRoleBinding(`${rbacName}`, envName)
-    return result.body
-  } catch {
-    console.log(`Role binding ${rbacName} in namespace ${envName} not found`)
-  }
-}
+export const generateProjectPermGroupName = (params: BaseProject, perm: Perm) => `kibana-${params.organization}-${params.project}-${perm}`
 
-export const deleteGroupK8s = async (cluster: EnvironmentCreateArgs['cluster'], group: string) => {
-  try {
-    const customObjectsApi = await createCustomObjectsApi(cluster)
-    const result = await customObjectsApi.deleteClusterCustomObject('user.openshift.io', 'v1', 'groups', `${group}`)
-    console.debug(JSON.stringify(result.body))
-  } catch (error) {
-    if (error instanceof Error) {
-      console.log(error.message)
+export const ensureProjectGroup = async (params: BaseProject, usernames: string[], customObjectsApi: CustomObjectsApi, perm: Perm): Promise<string> => {
+  const { body: { items } } = await getProjectPermGroups(customObjectsApi, params, perm)
+
+  if (items.length === 1) {
+    const group = items[0]
+    if (group.metadata.name === generateProjectPermGroupName(params, perm)) {
+      await customObjectsApi.patchClusterCustomObject('user.openshift.io', 'v1', 'groups', group.metadata.name, { users: usernames }, undefined, undefined, undefined, patchOptions)
+      return group.metadata.name
     }
+    await customObjectsApi.deleteClusterCustomObject('user.openshift.io', 'v1', 'groups', group.metadata.name)
+  } else if (items.length > 1) {
+    await Promise.all(
+      items.map(item => customObjectsApi.deleteClusterCustomObject('user.openshift.io', 'v1', 'groups', item.metadata.name)),
+    )
   }
+
+  try {
+    const group = await customObjectsApi.getClusterCustomObject('user.openshift.io', 'v1', 'groups', generateProjectPermGroupName(params, perm))
+    // @ts-ignore
+    await customObjectsApi.deleteClusterCustomObject('user.openshift.io', 'v1', 'groups', group.body.metadata.name)
+  } catch (error) {}
+
+  const group = getGroupObject(params, usernames, perm)
+  await customObjectsApi.createClusterCustomObject('user.openshift.io', 'v1', 'groups', group)
+  return group.metadata.name
 }
 
-export const deleteRbacK8s = async (envName: string, cluster: EnvironmentCreateArgs['cluster'], rbacName: string) => {
+const getGroupObject = (params: BaseProject, users: string[], perm: Perm) => ({
+  apiVersion: 'user.openshift.io/v1',
+  kind: 'Group',
+  metadata: {
+    labels: {
+      'app.kubernetes.io/managed-by': 'dso-console',
+      'dso/project': params.project,
+      'dso/organization': params.organization,
+      'dso/kibana-perm': perm,
+    },
+    name: generateProjectPermGroupName(params, perm),
+  },
+  users,
+})
+
+export const deleteProjectGroup = async (params: BaseProject, customObjectsApi: CustomObjectsApi, perm: Perm) => {
+  const { body: { items } } = await getProjectPermGroups(customObjectsApi, params, perm)
+
+  await Promise.all(
+    items.map(item => customObjectsApi.deleteClusterCustomObject('user.openshift.io', 'v1', 'groups', item.metadata.name)),
+  )
+
   try {
-    const rbacObjectApi = await createRbacV1Api(cluster)
-    const result = await rbacObjectApi.deleteNamespacedRoleBinding(`${rbacName}`, envName)
-    console.debug(JSON.stringify(result.body))
-  } catch (error) {
-    if (error instanceof Error) {
-      console.log(error.message)
-    }
-  }
+    const group = await customObjectsApi.getClusterCustomObject('user.openshift.io', 'v1', 'groups', generateProjectPermGroupName(params, perm))
+    // @ts-ignore
+    await customObjectsApi.deleteClusterCustomObject('user.openshift.io', 'v1', 'groups', group.body.metadata.name)
+  } catch (error) {}
+}
+
+export const deleteGroups = async (cluster: ClusterObject, params: BaseProject) => {
+  const customObjectsApi = await createCustomObjectsApi(cluster)
+  await Promise.all([
+    deleteProjectGroup(params, customObjectsApi, 'ro'),
+    deleteProjectGroup(params, customObjectsApi, 'rw'),
+  ])
 }
