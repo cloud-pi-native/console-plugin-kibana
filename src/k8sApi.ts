@@ -3,6 +3,10 @@ import { KubeConfig } from '@kubernetes/client-node'
 import * as k8s from '@kubernetes/client-node'
 
 export const createCustomObjectsApi = async (cluster: ClusterObject) => {
+  if (!cluster.user.keyData) {
+    // Special case: disable direct calls to the cluster
+    return
+  }
   const kc = new KubeConfig()
   const clusterConfig = {
     ...cluster.cluster,

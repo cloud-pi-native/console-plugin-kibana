@@ -1,6 +1,6 @@
 {
   "name": "@cpn-console/kibana-plugin",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Kibana plugin for DSO console",
   "type": "module",
   "main": "./dist/index.js",
@@ -16,20 +16,23 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@cpn-console/hooks": "^2.0.1",
+    "@cpn-console/hooks": "^2.0.2",
     "@keycloak/keycloak-admin-client": "^23.0.7",
-    "@kubernetes/client-node": "^0.20.0"
+    "@kubernetes/client-node": "^0.20.0",
+    "js-yaml": "4.1.0"
   },
   "devDependencies": {
     "@cpn-console/eslint-config": "^1.0.0",
+    "@cpn-console/gitlab-plugin": "^2.0.3",
     "@cpn-console/keycloak-plugin": "^2.0.1",
-    "@cpn-console/kubernetes-plugin": "^2.0.0",
-    "@cpn-console/shared": "^1.0.1",
+    "@cpn-console/kubernetes-plugin": "^2.0.1",
+    "@cpn-console/shared": "^1.0.3",
     "@cpn-console/ts-config": "^1.1.0",
-    "@types/node": "^20.11.24",
-    "nodemon": "^3.1.0",
+    "@types/js-yaml": "4.0.9",
+    "@types/node": "^20.12.7",
     "husky": "^9.0.11",
-    "typescript": "^5.3.3",
+    "nodemon": "^3.1.0",
+    "typescript": "^5.4.5",
     "typescript-transform-paths": "^3.4.7"
   },
   "publishConfig": {
