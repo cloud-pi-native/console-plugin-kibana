@@ -12,7 +12,7 @@ export const getKibanaUrls = (clusters: Cluster[]) => clusters.reduce((tos, clus
   return urlInfo
     ? [...tos, {
         to: `${urlInfo.split('=')[1]}`,
-        title: `Kibana ${cluster.label}`,
+        title: `${cluster.label}`,
       }]
     : tos
 }, [] as { to: string, title: string }[])
